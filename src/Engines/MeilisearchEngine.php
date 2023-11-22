@@ -4,6 +4,7 @@ namespace Laravel\Scout\Engines;
 
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
+use Laravel\Scout\Events\SearchExecuted;
 use Laravel\Scout\Jobs\RemoveableScoutCollection;
 use Meilisearch\Client as MeilisearchClient;
 use Meilisearch\Contracts\IndexesQuery;
@@ -104,11 +105,15 @@ class MeilisearchEngine extends Engine
      */
     public function search(Builder $builder)
     {
-        return $this->performSearch($builder, array_filter([
+        $results = $this->performSearch($builder, array_filter([
             'filter' => $this->filters($builder),
             'hitsPerPage' => $builder->limit,
             'sort' => $this->buildSortFromOrderByClauses($builder),
         ]));
+
+        event(new SearchExecuted($results));
+
+        return $results;
     }
 
     /**
@@ -122,12 +127,16 @@ class MeilisearchEngine extends Engine
      */
     public function paginate(Builder $builder, $perPage, $page)
     {
-        return $this->performSearch($builder, array_filter([
+        $results = $this->performSearch($builder, array_filter([
             'filter' => $this->filters($builder),
             'hitsPerPage' => (int) $perPage,
             'page' => $page,
             'sort' => $this->buildSortFromOrderByClauses($builder),
         ]));
+
+        event(new SearchExecuted($results));
+
+        return $results;
     }
 
     /**
